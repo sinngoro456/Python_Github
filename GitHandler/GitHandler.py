@@ -3,13 +3,9 @@ import os
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from git import Repo
-import subprocess
 
-
-import os
-from watchdog.events import FileSystemEventHandler
-from git import Repo
-import time
+# 監視対象のパスを設定
+REPO_PATH = r"C:\prog\Github_test"
 
 
 class GitHandler(FileSystemEventHandler):
@@ -58,12 +54,44 @@ class GitHandler(FileSystemEventHandler):
         pass
 
     def on_deleted(self, event):
-        # 必要に応じて、ファイルの削除を処理するロジックをここに追加
-        pass
+        if not event.is_directory:
+            relative_path = os.path.relpath(event.src_path, self.repo_path)
+
+            # .git ディレクトリ内のファイルを無視する
+            if relative_path.startswith(".git"):
+                return
+
+            print(f"ファイルが削除されました: {relative_path}")
+
+            # クールダウン待機
+            time.sleep(self.cooldown)
+
+            try:
+                # Gitからファイルを削除
+                self.repo.index.remove([relative_path])
+
+                # コミットを作成
+                self.repo.index.commit(f"ファイルを削除: {relative_path}")
+
+                # リモートにプッシュ
+                origin = self.repo.remote("origin")
+                origin.push()
+
+                print(f"{relative_path} がリモートリポジトリから削除されました")
+            except Exception as e:
+                print(
+                    f"エラー: {relative_path} の削除処理中に問題が発生しました - {str(e)}"
+                )
 
 
 def pull_and_add_new_files(repo):
     print("リモートからプルしています...")
+
+    # ローカルの変更をコミット
+    if repo.is_dirty() or repo.untracked_files:
+        repo.git.add(A=True)
+        repo.index.commit("自動コミット: ローカルの変更")
+
     origin = repo.remote("origin")
     origin.pull()
 
@@ -80,15 +108,14 @@ def pull_and_add_new_files(repo):
 
 
 if __name__ == "__main__":
-    repo_path = r"C:\prog\kawa_matlab"
-    repo = Repo(repo_path)
+    repo = Repo(REPO_PATH)
 
     # 初期プルと新ファイルの追加
     pull_and_add_new_files(repo)
 
-    event_handler = GitHandler(repo_path)
+    event_handler = GitHandler(REPO_PATH)
     observer = Observer()
-    observer.schedule(event_handler, repo_path, recursive=True)
+    observer.schedule(event_handler, REPO_PATH, recursive=True)
     observer.start()
 
     try:
@@ -97,9 +124,8 @@ if __name__ == "__main__":
         while True:
             time.sleep(1)
             if count > 10:
-                repo_path = r"C:\prog\kawa_matlab"
-                repo = Repo(repo_path)
                 print("リモートからプルしています...")
+                pull_and_add_new_files(repo)
                 count = 0
             else:
                 count = count + 1
