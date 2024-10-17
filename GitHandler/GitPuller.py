@@ -1,3 +1,5 @@
+
+
 import time
 import os
 from watchdog.observers import Observer
@@ -5,13 +7,13 @@ from watchdog.events import FileSystemEventHandler
 from git import Repo
 
 # 監視対象のパスを設定
-REPO_PATH = r"C:\prog\Github_test"
+REPO_PATH = r"/Users/kawabuchy/Public/Github_test"
 
 
 class GitHandler(FileSystemEventHandler):
-    def __init__(self, repo_path):
-        self.repo_path = repo_path
-        self.repo = Repo(repo_path)
+    def __init__(self, path):
+        self.repo_path = path
+        self.repo = Repo(path)  # 変数名を repo から repo_instance に変更
         self.cooldown = 1  # クールダウン時間（秒）
 
     def on_created(self, event):
@@ -108,10 +110,10 @@ def pull_and_add_new_files(repo):
 
 
 if __name__ == "__main__":
-    repo = Repo(REPO_PATH)
+    repo_instance = Repo(REPO_PATH)  # 変数名を repo から repo_instance に変更
 
     # 初期プルと新ファイルの追加
-    pull_and_add_new_files(repo)
+    pull_and_add_new_files(repo_instance)  # 変数名を repo から repo_instance に変更
 
     event_handler = GitHandler(REPO_PATH)
     observer = Observer()
@@ -125,7 +127,7 @@ if __name__ == "__main__":
             time.sleep(1)
             if count > 10:
                 print("リモートからプルしています...")
-                pull_and_add_new_files(repo)
+                pull_and_add_new_files(REPO_PATH)
                 count = 0
             else:
                 count = count + 1
