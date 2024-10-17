@@ -412,7 +412,7 @@ class WandbLogger():
         returns:
         dataset artifact to be logged or used
         """
-        # TODO: Explore multiprocessing to slpit this loop parallely| This is essential for speeding up the the logging
+    
         artifact = wandb.Artifact(name=name, type="dataset")
         img_files = tqdm([dataset.path]) if isinstance(dataset.path, str) and Path(dataset.path).is_dir() else None
         img_files = tqdm(dataset.im_files) if not img_files else img_files

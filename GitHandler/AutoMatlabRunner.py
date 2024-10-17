@@ -1,84 +1,138 @@
 import os
-import random
 import time
+import random
 import shutil
-import re
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import matlab.engine
+import subprocess
+import git
 
-# Google Sheets APIの設定
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.comauth/drive",
-]
-creds = ServiceAccountCredentials.from_json_keyfile_name(
-    "C:/prog/Github_test/marine-cycle-438819-e2-05ef3300de74.json", scope
-)
-client = gspread.authorize(creds)
+# 定数の定義
+REPO_PATH = r"C:\prog\Github_test"
+TASKS_PATH = r"C:\prog\Github_test\PC1\tasks"
+RESULTS_PATH = r"C:\prog\Github_test\PC1\results"
+MATLAB_WORK_DIR = r"C:\prog\kawa_matlab"
 
-# スプレッドシートを開く
-sheet = client.open_by_key("1BmLmVuvrnjFqBz4zoJ7aSgbynS0HJqPJxHLa4dZbsPg").worksheet(
-    "Sheet1"
-)
+# 文字列定数
+MATLAB_PROCESS_NAME = "MATLAB.exe"
+README_FILENAME = "Readme.txt"
+SEND_PATH_KEY = 'Send Path = "'
+TARGET_FILE_KEY = 'Target File = "'
+RESULTS_PATH_KEY = 'Results Path = "'
+COMMIT_MESSAGE = "Task completed and results added"
 
 
-def check_conditions():
-    # フォルダの確認
-    results_dir = r"C:\prog\Github_test\Results"
-    non_results_folders = [
-        f
-        for f in os.listdir(results_dir)
-        if os.path.isdir(os.path.join(results_dir, f)) and not f.startswith("results_")
-    ]
-
-    # スプレッドシートの確認
-    b2_value = sheet.acell("B2").value
-    b3_value = sheet.acell("B3").value
-
-    return len(non_results_folders) > 0 and b2_value == "" and b3_value == ""
+def random_wait():
+    # 10〜20秒のランダムな待ち時間を設定
+    print("待機中...")
+    time.sleep(random.uniform(1, 2))
 
 
-def process_folder():
-    results_dir = r"C:\prog\Github_test\Results"
-    non_results_folders = [
-        f
-        for f in os.listdir(results_dir)
-        if os.path.isdir(os.path.join(results_dir, f)) and not f.startswith("results_")
-    ]
+def check_matlab_process():
+    # MATLABプロセスの確認
+    print("check_matlab_process")
+    result = subprocess.check_output("tasklist", shell=True)
+    return "MATLAB" in result.decode("utf-16")  # エンコーディングを修正
 
-    if non_results_folders:
-        folder = non_results_folders[0]
-        readme_path = os.path.join(results_dir, folder, "Readme.txt")
 
-        with open(readme_path, "r") as file:
-            content = file.read()
+def pull_repository(repo_path):
+    print("pull_repository")
+    # リポジトリをプル
+    repo = git.Repo(repo_path)
+    repo.remotes.origin.pull()
 
-        # 正規表現を使用して値を抽出
-        send_path = re.search(r'Send Path = "(.*?)"', content).group(1)
-        target_file = re.search(r'Target File = "(.*?)"', content).group(1)
-        results_path = re.search(r'Results Path = "(.*?)"', content).group(1)
 
-        # ファイルの移動
-        source = os.path.join(send_path, target_file)
-        destination = r"C:\prog\kawa_matlab"
-        shutil.copy2(source, destination)
+def process_task_folder(task_folder):
+    print("process_task_folder")
+    # タスクフォルダの処理
+    readme_path = os.path.join(task_folder, README_FILENAME)
+    with open(readme_path, "r") as f:
+        content = f.read()
 
-        # MATLABエンジンの起動と実行
-        eng = matlab.engine.start_matlab()
-        eng.cd(r"C:\prog\kawa_matlab")
-        eng.run(target_file, nargout=0)
-        eng.quit()
+    # Readmeから情報を抽出
+    send_path = content.split(SEND_PATH_KEY)[1].split('"')[0]
+    target_file = content.split(TARGET_FILE_KEY)[1].split('"')[0]
+
+    # ファイルの移動
+    print("folder_move")
+    task_name = os.path.basename(task_folder)  # task_folderの名前を取得
+    destination_path = os.path.join(
+        send_path, task_name
+    )  # send_pathの直下に移動するパスを作成
+    if os.path.exists(destination_path):
+        shutil.rmtree(destination_path)  # ディレクトリを削除
+    shutil.move(task_folder, send_path)  # task_folderをsend_pathの直下に移動
+
+    # MATLABの実行
+    print("MATLABの実行")
+    matlab_cmd = f"matlab -nosplash -nodesktop -r \"cd('{destination_path}'); run('{target_file}'); exit;\""
+    # MATLABをGUIで実行
+    matlab_process = subprocess.Popen(matlab_cmd, shell=True)
+
+    # MATLABの処理が終わるまで待機
+    time.sleep(10)
+    print("MATLAB起動中")
+    matlab_process.wait()  # MATLABプロセスが終了するのを待つ
+    print("MATLAB終了")
+    # akaan
+
+    # 30秒待機zyouhoutokeikokunikannsuru
+    print("30秒待機中")
+    time.sleep(25)
+
+    # 結果の移動
+    print("結果の移動")
+    task_name = os.path.basename(task_folder)
+    results_path = os.path.join(destination_path, "results")
+    destination_dir = os.path.join(RESULTS_PATH, task_name)
+
+    # 既存のディレクトリを削除してから作成
+    if os.path.exists(destination_dir):
+        shutil.rmtree(destination_dir)  # 既存のディレクトリを削除
+    os.makedirs(destination_dir)  # 新しいディレクトリを作成
+    for item in os.listdir(results_path):
+        source_item = os.path.join(results_path, item)
+        shutil.move(source_item, destination_dir)
+
+
+def push_repository(repo_path):
+    print("push_repository")
+    # リポジトリにプッシュ
+    os.chdir(repo_path)
+    repo = git.Repo()
+    # 最新を取り込むため一旦Pull
+    print("pull_repository")
+    o = repo.remotes.origin
+    o.pull()
+
+    # Pull後にリセット
+    print("git reset --hard origin/main")
+    repo.git.reset("--hard", "origin/main")  # リモートのmainにハードリセット
+
+    repo.git.add(A=True)
+    print("commit_repository")
+    repo.git.commit(".", "-m", '"Commit Log"')
+
+    # Push
+    origin = repo.remote(name="origin")
+    print("push_repository")
+    try:
+        origin.push(force=True)  # 強制的にプッシュ
+    except Exception as e:
+        print(f"プッシュ中にエラーが発生しました: {e}")
+
+
+# ... existing code ...
 
 
 def main():
     while True:
-        if check_conditions():
-            process_folder()
+        random_wait()
 
-        # 10〜20秒のランダムな待ち時間
-        wait_time = random.uniform(10, 20)
-        time.sleep(wait_time)
+        pull_repository(REPO_PATH)
+        # MATLABプロセスが動作していない、かつタスクフォルダが存在する場合
+        if not (check_matlab_process()) and os.listdir(TASKS_PATH):
+            task_folder = os.path.join(TASKS_PATH, os.listdir(TASKS_PATH)[0])
+            process_task_folder(task_folder)
+            push_repository(REPO_PATH)
 
 
 if __name__ == "__main__":
