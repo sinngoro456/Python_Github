@@ -4,11 +4,11 @@ import random
 import shutil
 import subprocess
 import git
+import MatDevider
+import socket
 
 # 定数の定義
 REPO_PATH = r"C:\prog\Github_test"
-TASKS_PATH = r"C:\prog\Github_test\PC1\tasks"
-RESULTS_PATH = r"C:\prog\Github_test\PC1\results"
 MATLAB_WORK_DIR = r"C:\prog\kawa_matlab"
 
 # 文字列定数
@@ -18,6 +18,19 @@ SEND_PATH_KEY = 'Send Path = "'
 TARGET_FILE_KEY = 'Target File = "'
 RESULTS_PATH_KEY = 'Results Path = "'
 COMMIT_MESSAGE = "Task completed and results added"
+
+# PCの名前を取得
+pc_name = socket.gethostname()
+
+# 定数の定義
+pc_path = os.path.join(REPO_PATH, pc_name)
+TASKS_PATH = os.path.join(REPO_PATH, f"{pc_name}\\tasks")  # PC名を含めたパス
+RESULTS_PATH = os.path.join(REPO_PATH, f"{pc_name}\\results")  # PC名を含めたパス
+
+# フォルダが存在しない場合は作成
+os.makedirs(pc_path, exist_ok=True)
+os.makedirs(TASKS_PATH, exist_ok=True)
+os.makedirs(RESULTS_PATH, exist_ok=True)
 
 
 def random_wait():
@@ -36,8 +49,13 @@ def check_matlab_process():
 def pull_repository(repo_path):
     print("pull_repository")
     # リポジトリをプル
-    repo = git.Repo(repo_path)
-    repo.remotes.origin.pull()
+    os.chdir(repo_path)
+    repo = git.Repo()
+    # 最新を取り込むため一旦Pull
+    print("pull_repository")
+    o = repo.remotes.origin
+    o.pull()
+    repo.git.reset("--hard", "origin/main")  # リモートのmainにハードリセット
 
 
 def process_task_folder(task_folder):
@@ -77,6 +95,24 @@ def process_task_folder(task_folder):
     # 30秒待機zyouhoutokeikokunikannsuru
     print("30秒待機中")
     time.sleep(25)
+    return send_path
+
+
+def move_push_repository(repo_path, task_folder, send_path):
+    # ファイルの移動
+    print("folder_move")
+    task_name = os.path.basename(task_folder)  # task_folderの名前を取得
+    destination_path = os.path.join(send_path, task_name)
+
+    print("push_repository")
+    # リポジトリにプッシュ
+    os.chdir(repo_path)
+    repo = git.Repo()
+    # 最新を取り込むため一旦Pull
+    print("pull_repository")
+    o = repo.remotes.origin
+    o.pull()
+    repo.git.reset("--hard", "origin/main")  # リモートのmainにハードリセット
 
     # 結果の移動
     print("結果の移動")
@@ -90,22 +126,8 @@ def process_task_folder(task_folder):
     os.makedirs(destination_dir)  # 新しいディレクトリを作成
     for item in os.listdir(results_path):
         source_item = os.path.join(results_path, item)
+        source_item = MatDevider.MatDevider.split_mat_file(source_item)
         shutil.move(source_item, destination_dir)
-
-
-def push_repository(repo_path):
-    print("push_repository")
-    # リポジトリにプッシュ
-    os.chdir(repo_path)
-    repo = git.Repo()
-    # 最新を取り込むため一旦Pull
-    print("pull_repository")
-    o = repo.remotes.origin
-    o.pull()
-
-    # Pull後にリセット
-    print("git reset --hard origin/main")
-    repo.git.reset("--hard", "origin/main")  # リモートのmainにハードリセット
 
     repo.git.add(A=True)
     print("commit_repository")
@@ -120,9 +142,6 @@ def push_repository(repo_path):
         print(f"プッシュ中にエラーが発生しました: {e}")
 
 
-# ... existing code ...
-
-
 def main():
     while True:
         random_wait()
@@ -131,8 +150,8 @@ def main():
         # MATLABプロセスが動作していない、かつタスクフォルダが存在する場合
         if not (check_matlab_process()) and os.listdir(TASKS_PATH):
             task_folder = os.path.join(TASKS_PATH, os.listdir(TASKS_PATH)[0])
-            process_task_folder(task_folder)
-            push_repository(REPO_PATH)
+            send_path = process_task_folder(task_folder)
+            move_push_repository(REPO_PATH, task_folder, send_path)
 
 
 if __name__ == "__main__":
