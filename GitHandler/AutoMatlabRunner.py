@@ -48,7 +48,6 @@ def check_matlab_process():
 
 def pull_repository(repo_path):
     print("pull_repository")
-    print("pull_repository")
     # リポジトリをプル
     os.chdir(repo_path)
     repo = git.Repo()
