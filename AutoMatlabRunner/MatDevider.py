@@ -20,9 +20,8 @@ class MatDevider:
             raise FileNotFoundError(f"入力ファイル {input_mat_file} が見つかりません。")
 
         if not MatDevider.is_mat_file(input_mat_file):
-            raise ValueError(
-                f"入力ファイル {input_mat_file} はMATファイルではありません。"
-            )
+            print(f"入力ファイル {input_mat_file} はMATファイルではありません。")
+            return False
 
         base_filename = os.path.splitext(os.path.basename(input_mat_file))[0]
         output_directory = os.path.dirname(input_mat_file)
