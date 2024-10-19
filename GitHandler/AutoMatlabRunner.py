@@ -52,7 +52,6 @@ def pull_repository(repo_path):
     os.chdir(repo_path)
     repo = git.Repo()
     # 最新を取り込むため一旦Pull
-    print("pull_repository")
     o = repo.remotes.origin
     o.pull()
     repo.git.reset("--hard", "origin/main")  # リモートのmainにハードリセット
