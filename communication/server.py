@@ -40,3 +40,18 @@ class BlockingServerBase:
 
     def respond(self, message: str) -> str:
         return ""
+
+
+class InetServer(BlockingServerBase):
+    def __init__(self, host: str = "0.0.0.0", port: int = 8080) -> None:
+        self.server = (host, port)
+        super().__init__(timeout=60, buffer=1024)
+        self.accept(self.server, socket.AF_INET, socket.SOCK_STREAM, 0)
+
+    def respond(self, message: str) -> str:
+        print("received -> ", message)
+        return "Server accepted !!"
+
+
+if __name__ == "__main__":
+    InetServer()
