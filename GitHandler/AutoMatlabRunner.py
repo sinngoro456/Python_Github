@@ -144,7 +144,7 @@ def move_push_repository(repo_path, task_folder, send_path):
 def main():
     while True:
         random_wait()
-
+        
         pull_repository(REPO_PATH)
         # MATLABプロセスが動作していない、かつタスクフォルダが存在する場合
         if not (check_matlab_process()) and os.listdir(TASKS_PATH):
