@@ -1,0 +1,2 @@
+REPO_PATH = [/Users/kawabuchy/Public/Github_test]
+MATLAB_WORK_DIR = [/Users/kawabuchy/Public/MATLAB]

@@ -7,6 +7,7 @@ import MatDevider
 import socket
 import matlab.engine
 import datetime
+import sys
 
 # 文字列定数
 MATLAB_PROCESS_NAME = "MATLAB.exe"
@@ -16,6 +17,15 @@ TARGET_FILE_KEY = 'Target File = "'
 RESULTS_PATH_KEY = 'Results Path = "'
 COMMIT_MESSAGE = "Task completed and results added"
 STOP_FILE = "stop.txt"
+
+
+def get_exe_directory():
+    if getattr(sys, "frozen", False):
+        # exeファイルとして実行されている場合
+        return os.path.dirname(sys.executable)
+    else:
+        # 通常のPythonスクリプトとして実行されている場合
+        return os.path.dirname(os.path.abspath(__file__))
 
 
 #  各PCに対応したパスの設定
@@ -40,14 +50,10 @@ def process_path(input_string):
     result = []
 
     for path in paths:
-        if path.startswith("/Users/"):
-            # パスを'/'で分割し、2番目の要素（インデックス1）を現在のユーザー名に置換
-            path_parts = path.split("/")
-            path_parts[2] = user_name
-            result.append("/".join(path_parts))
-        else:
-            # パスの先頭に'/Users/現在のユーザー名/'を追加
-            result.append(f'/Users/{user_name}/{path.lstrip("/")}')
+        # パスを'/'で分割し、2番目の要素（インデックス1）を現在のユーザー名に置換
+        path_parts = path.split("/")
+        path_parts[2] = user_name
+        result.append("/".join(path_parts))
 
     # 結果をカンマで結合して返す
     return ",".join(result)
@@ -257,7 +263,8 @@ def move_push_repository(task_folder, send_path):
 
 
 def main():
-    original_dir = os.getcwd()
+    original_dir = get_exe_directory()
+    os.chdir(original_dir)
     print(f"現在のカレントディレクトリ: {original_dir}")
     load_observe_path()
     pull_repository()
