@@ -53,5 +53,24 @@ class InetServer(BlockingServerBase):
         return "Server accepted !!"
 
 
+class UnixServer(BlockingServerBase):
+    def __init__(self, path: str = "server.sock"):
+        self.server = path
+        self.delete()
+        super().__init__(timeout=60, buffer=1024)
+        super().accept(("localhost", 8888), socket.AF_INET, socket.SOCK_STREAM, 0)
+
+    def __del__(self):
+        self.delete()
+
+    def delete(self):
+        if os.path.exists(self.server):
+            os.remove(self.server)
+
+    def respond(self, message: str) -> str:
+        print("received -> ", message)
+        return "Server accepted !!"
+
+
 if __name__ == "__main__":
-    InetServer()
+    UnixServer()
