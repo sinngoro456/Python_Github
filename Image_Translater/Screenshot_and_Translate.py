@@ -7,11 +7,22 @@ import deepl
 from googletrans import Translator
 import pyperclip
 import pygetwindow as gw
+import win32clipboard
+from io import BytesIO
+from PIL import Image
+
+
+# 画像の保存先
+OUTPUT_PATH = r"C:\prog\Python\Python_Github\Image_Translater\output_image.jpg"
 
 # DeepL 設定
 API_KEY = "ee58b7b7-459f-4b79-826b-384aa3be18ac:fx"  # 自身の API キーを指定
 
-source_lang = "EN"
+# 日本語表示オプション
+Show_Japanese = True
+
+source_lang = "JA"
+# EN
 target_lang = "JA"
 
 # 画像→文字の設定
@@ -36,35 +47,44 @@ class OCRTranslator:
         self.translator = deepl.Translator(API_KEY)
         self.text_widget_left = None
         self.text_widget_right = None
+        self.last_captured_image = None  # 最後にキャプチャした画像を保存する変数
         self.root = None
 
     def replace_newlines(self, text):
-        # 2つ以上の連続する改行でテキストを分割
-        items = re.split(r"\n", text.strip())
-        # 日本語の文字を含まない要素のみをフィルタリング
-        filtered_items = [
-            item if not re.search(r"[ぁ-んァ-ン一-龥]", item) else r"__DOUBLE_NEWLINE__"
-            for item in items
-        ]
-        text = "".join(filtered_items)
-        # ,
-        # 連続する改行・スペースを半角スペースに置換
-        text = re.sub(r"\s+", " ", text)
-        # text = re.sub(".", "\n", text)
-        text = re.sub(r"\n", r"\n\n", text)
-        text = re.sub(r"__DOUBLE_NEWLINE__", "\n\n", text)
-        text = re.sub(r"(OA|0A)", r"\n\nOA", text)
-        text = re.sub(r"(OC|0C|Oc|0c)", r"OC\n", text)
-        text = re.sub(
-            r"information.",
-            r"information.\n\n\n",
-            text,
-        )
-        text = re.sub(
-            r"(AThe statement|A.The statement)",
-            r"\n\n\n\nA.The statement",
-            text,
-        )
+        # # 2つ以上の連続する改行でテキストを分割
+        # items = re.split(r"\n", text.strip())
+        # # 日本語の文字を含まない要素のみをフィルタリング
+        # if Show_Japanese:
+        #     filtered_items = items
+        # else:
+        #     filtered_items = [
+        #         (
+        #             item
+        #             if not re.search(r"[ぁ-んァ-ン一-龥]", item)
+        #             else r"__DOUBLE_NEWLINE__"
+        #         )
+        #         for item in items
+        #     ]
+
+        # text = "".join(filtered_items)
+        # # ,
+        # # 連続する改行・スペースを半角スペースに置換
+        # text = re.sub(r"\s+", " ", text)
+        # # text = re.sub(".", "\n", text)
+        # text = re.sub(r"\n", r"\n\n", text)
+        # text = re.sub(r"__DOUBLE_NEWLINE__", "\n\n", text)
+        # text = re.sub(r"(OA|0A)", r"\n\nOA", text)
+        # text = re.sub(r"(OC|0C|Oc|0c)", r"OC\n", text)
+        # text = re.sub(
+        #     r"information.",
+        #     r"information.\n\n\n",
+        #     text,
+        # )
+        # text = re.sub(
+        #     r"(AThe statement|A.The statement)",
+        #     r"\n\n\n\nA.The statement",
+        #     text,
+        # )
         return text.lstrip()
 
     # スクショ範囲参照用ウィンドウの範囲取得関数
@@ -120,7 +140,19 @@ class OCRTranslator:
             padx=20,
             pady=10,
         )
-        translate_button.pack()
+        translate_button.pack(side="left", padx=(0, 10))
+
+        copy_image_button = tk.Button(
+            button_frame,
+            text="画像をコピー",
+            command=self.capture_to_clipboard,
+            bg="#2196F3",
+            fg="white",
+            font=("Helvetica", 12, "bold"),
+            padx=20,
+            pady=10,
+        )
+        copy_image_button.pack(side="left")
 
         # テキストフレーム
         text_frame = tk.Frame(main_frame, bg="#f0f0f0")
@@ -166,13 +198,34 @@ class OCRTranslator:
 
         self.root.mainloop()
 
+    def capture_to_clipboard(self):
+        try:
+            [left, top, width, height] = self.get_window_info("Get Size Window")
+
+            # スクリーンショットを直接メモリに保存
+            screenshot = pyautogui.screenshot(region=(left, top, width, height))
+
+            # PILのImageオブジェクトを直接使用
+            output = BytesIO()
+            screenshot.convert("RGB").save(output, "BMP")
+            data = output.getvalue()[14:]
+            output.close()
+
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardData(win32clipboard.CF_DIB, data)
+            win32clipboard.CloseClipboard()
+
+            print("画像がクリップボードにコピーされました。")
+        except Exception as e:
+            print(f"エラーが発生しました: {e}")
+
     def update_translation(self):
         print("翻訳ボタンが押されました。")
         # 新しいスクリーンショットを撮影
-        output_path = r"C:\prog\Python\Python_Github\Image_Translater\output_image.jpg"
         [left, top, width, height] = self.get_window_info("Get Size Window")
         cropped_img = pyautogui.screenshot(
-            output_path, region=(left, top, width, height)
+            OUTPUT_PATH, region=(left, top, width, height)
         )
 
         # 新しいテキストを取得
@@ -202,12 +255,10 @@ class OCRTranslator:
         self.width = width
         self.height = height
 
-        output_path = r"C:\prog\Python\Python_Github\Image_Translater\output_image.jpg"
-
         [left, top, width, height] = self.get_window_info("Get Size Window")
 
         cropped_img = pyautogui.screenshot(
-            output_path, region=(left, top, width, height)
+            OUTPUT_PATH, region=(left, top, width, height)
         )
         text = self.render_doc_text(cropped_img)
         if not text:
