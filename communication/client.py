@@ -38,24 +38,19 @@ class BaseClient:
 
 
 class InetClient(BaseClient):
-    def __init__(self, host: str = "0.0.0.0", port: int = 8080) -> None:
+    def __init__(self, host: str = "192.168.10.112", port: int = 8080) -> None:
         self.server = (host, port)
         super().__init__(timeout=60, buffer=1024)
         super().connect(self.server, socket.AF_INET, socket.SOCK_STREAM, 0)
 
 
-if __name__ == "__main__":
-    cli = InetClient()
-    cli.send()
-
-
-class InetClient(BaseClient):
-    def __init__(self, host: str = "0.0.0.0", port: int = 8080) -> None:
-        self.server = (host, port)
+class UnixClient(BaseClient):
+    def __init__(self, path: str = "server.sock"):
+        self.server = path
         super().__init__(timeout=60, buffer=1024)
-        super().connect(self.server, socket.AF_INET, socket.SOCK_STREAM, 0)
+        super().connect(self.server, socket.AF_UNIX, socket.SOCK_STREAM, 0)
 
 
 if __name__ == "__main__":
-    cli = InetClient()
+    cli = UnixClient()
     cli.send()
