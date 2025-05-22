@@ -2,3 +2,4 @@
 "*.pyc" 
 "output_image.jpg" 
 "size.txt" 
+"shiftbot/" 
