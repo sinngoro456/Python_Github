@@ -51,40 +51,40 @@ class OCRTranslator:
         self.root = None
 
     def replace_newlines(self, text):
-        # # 2つ以上の連続する改行でテキストを分割
-        # items = re.split(r"\n", text.strip())
-        # # 日本語の文字を含まない要素のみをフィルタリング
-        # if Show_Japanese:
-        #     filtered_items = items
-        # else:
-        #     filtered_items = [
-        #         (
-        #             item
-        #             if not re.search(r"[ぁ-んァ-ン一-龥]", item)
-        #             else r"__DOUBLE_NEWLINE__"
-        #         )
-        #         for item in items
-        #     ]
+        # 2つ以上の連続する改行でテキストを分割
+        items = re.split(r"\n", text.strip())
+        # 日本語の文字を含まない要素のみをフィルタリング
+        if Show_Japanese:
+            filtered_items = items
+        else:
+            filtered_items = [
+                (
+                    item
+                    if not re.search(r"[ぁ-んァ-ン一-龥]", item)
+                    else r"__DOUBLE_NEWLINE__"
+                )
+                for item in items
+            ]
 
-        # text = "".join(filtered_items)
-        # # ,
-        # # 連続する改行・スペースを半角スペースに置換
-        # text = re.sub(r"\s+", " ", text)
-        # # text = re.sub(".", "\n", text)
-        # text = re.sub(r"\n", r"\n\n", text)
-        # text = re.sub(r"__DOUBLE_NEWLINE__", "\n\n", text)
-        # text = re.sub(r"(OA|0A)", r"\n\nOA", text)
-        # text = re.sub(r"(OC|0C|Oc|0c)", r"OC\n", text)
-        # text = re.sub(
-        #     r"information.",
-        #     r"information.\n\n\n",
-        #     text,
-        # )
-        # text = re.sub(
-        #     r"(AThe statement|A.The statement)",
-        #     r"\n\n\n\nA.The statement",
-        #     text,
-        # )
+        text = "".join(filtered_items)
+        # ,
+        # 連続する改行・スペースを半角スペースに置換
+        text = re.sub(r"\s+", " ", text)
+        # text = re.sub(".", "\n", text)
+        text = re.sub(r"\n", r"\n\n", text)
+        text = re.sub(r"__DOUBLE_NEWLINE__", "\n\n", text)
+        text = re.sub(r"(OA|0A)", r"\n\nOA", text)
+        text = re.sub(r"(OC|0C|Oc|0c)", r"OC\n", text)
+        text = re.sub(
+            r"information.",
+            r"information.\n\n\n",
+            text,
+        )
+        text = re.sub(
+            r"(AThe statement|A.The statement)",
+            r"\n\n\n\nA.The statement",
+            text,
+        )
         return text.lstrip()
 
     # スクショ範囲参照用ウィンドウの範囲取得関数

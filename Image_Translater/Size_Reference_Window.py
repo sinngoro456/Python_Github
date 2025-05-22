@@ -16,7 +16,7 @@ class Size_Reference_Window:
         # スクショ撮影範囲の記録テキストにサイズ情報が格納されているかチェック
         pattern = re.compile(r"^\d+x\d+([+-]\d+){2}$")
         if os.path.exists(path):
-            with open(path, "r") as file:
+            with open(path, "r", encoding="utf-8") as file:
                 window_size_text = file.read().strip()
                 pattern = re.compile(r"^\d+x\d+([+-]\d+){2}$")
                 if bool(pattern.match(window_size_text)):
@@ -55,7 +55,7 @@ class Size_Reference_Window:
 
         # 新しいウィンドウサイズと位置をスクショ撮影範囲の記録テキストに保存
         window_size = f"{new_width}x{new_height}+{new_x}+{new_y}"
-        with open(path, "w") as file:
+        with open(path, "w", encoding="utf-8") as file:
             file.write(window_size)
 
 
