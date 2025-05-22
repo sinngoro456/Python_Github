@@ -1,0 +1,90 @@
+from awscrt import mqtt, http
+from awsiot import mqtt_connection_builder
+import json
+
+
+class AwsIotClient:
+    def __init__(self, clientId, topic, message):
+        self.endpoint = "a32vuvkssx19l3-ats.iot.ap-northeast-1.amazonaws.com"
+        self.ca_file = "/Users/kawabuchy/Public/python/Python_Github/AWS/IoTCore/cert/dad9e4c44365f8344b68c17192e6e383a47f4c536a9d817956235d4d3744bae8-certificate.pem.crt"
+        self.cert = "/Users/kawabuchy/Public/python/Python_Github/AWS/IoTCore/cert/thing1.cert.pem"
+        self.key = "/Users/kawabuchy/Public/python/Python_Github/AWS/IoTCore/cert/thing1.private.key"
+
+        self.client_id = clientId
+        self.topic = topic
+        self.message = message
+        self.mqtt_connection = None
+
+    def on_connection_interrupted(self, connection, error, **kwargs):
+        print(f"Connection interrupted. error: {error}")
+
+    def on_connection_resumed(self, connection, return_code, session_present, **kwargs):
+        print(
+            f"Connection resumed. return_code: {return_code} session_present: {session_present}"
+        )
+
+    def on_connection_success(self, connection, callback_data):
+        assert isinstance(callback_data, mqtt.OnConnectionSuccessData)
+        print(
+            f"Connection Successful with return code: {callback_data.return_code} session present: {callback_data.session_present}"
+        )
+
+    def on_connection_failure(self, connection, callback_data):
+        assert isinstance(callback_data, mqtt.OnConnectionFailureData)
+        print(f"Connection failed with error code: {callback_data.error}")
+
+    def on_connection_closed(self, connection, callback_data):
+        print("Connection closed")
+
+    async def connect(self):
+        self.mqtt_connection = mqtt_connection_builder.mtls_from_path(
+            endpoint=self.endpoint,
+            port=8883,  # デフォルトのMQTTポート
+            cert_filepath=self.cert,
+            pri_key_filepath=self.key,
+            ca_filepath=self.ca_file,
+            on_connection_interrupted=self.on_connection_interrupted,
+            on_connection_resumed=self.on_connection_resumed,
+            client_id=self.client_id,
+            clean_session=False,
+            keep_alive_secs=30,
+            on_connection_success=self.on_connection_success,
+            on_connection_failure=self.on_connection_failure,
+            on_connection_closed=self.on_connection_closed,
+        )
+
+        print(f"Connecting to {self.endpoint} with client ID '{self.client_id}'...")
+        connect_future = self.mqtt_connection.connect()
+        connect_future.result()  # 接続が完了するまで待機
+        print("Connected!")
+
+    async def publish_message(self):
+        if self.message:
+            print(f"Publishing message to topic '{self.topic}': {self.message}")
+            message_json = json.dumps(self.message)
+            self.mqtt_connection.publish(
+                topic=self.topic, payload=message_json, qos=mqtt.QoS.AT_LEAST_ONCE
+            )
+
+    async def disconnect(self):
+        print("Disconnecting...")
+        disconnect_future = self.mqtt_connection.disconnect()
+        disconnect_future.result()  # 切断が完了するまで待機
+        print("Disconnected!")
+
+
+if __name__ == "__main__":
+    # クライアントの初期化と使用
+    clientId = "test-client"
+    topic = "device/{}/data".format(clientId)
+    message = "Hello,World!"
+
+    async def main():
+        client = AwsIotClient(clientId, topic, message)
+        await client.connect()
+        await client.publish_message()
+        await client.disconnect()
+
+    import asyncio
+
+    asyncio.run(main())

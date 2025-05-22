@@ -1,0 +1,9 @@
+mutation createTest_model1($createtest_model1input: CreateTest_model1Input!) {
+  createTest_model1(input: $createtest_model1input) {
+    clientId
+    velocity
+    longitude
+    latitude
+    timestamp
+  }
+}

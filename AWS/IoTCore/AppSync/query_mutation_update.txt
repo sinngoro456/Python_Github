@@ -1,0 +1,11 @@
+mutation MyMutation {
+  updateTest_model1(
+    input: {clientId: "test-client", latitude: 16, timestamp: 10, velocity: 1.5, longitude: 1.5}
+  ) {
+    clientId
+    latitude
+    longitude
+    timestamp
+    velocity
+  }
+}

@@ -1,0 +1,9 @@
+subscription MySubscription {
+  onUpdateTest_model1(clientId: "test-client") {
+    clientId
+    latitude
+    longitude
+    timestamp
+    velocity
+  }
+}
